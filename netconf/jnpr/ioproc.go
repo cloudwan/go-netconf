@@ -2,7 +2,7 @@ package jnpr
 
 import (
 	"fmt"
-	"github.com/Juniper/go-netconf/netconf"
+	"github.com/cloudwan/go-netconf/netconf"
 	"regexp"
 )
 
