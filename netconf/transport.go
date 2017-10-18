@@ -3,10 +3,13 @@ package netconf
 import (
 	"bytes"
 	"encoding/xml"
-	"fmt"
+	"errors"
 	"io"
 	"regexp"
 )
+
+// EOF should not be returned before delimiter is found in netconf messag
+var ErrUnexpectedEOF = errors.New("EOF while reading netconf message")
 
 const (
 	// msgSeperator is used to separate sent messages via NetConf
@@ -89,12 +92,9 @@ func (t *transportBasicIO) WaitForFunc(f func([]byte) (int, error)) ([]byte, err
 
 	pos := 0
 	for {
-		n, err := t.Read(buf[pos : pos+(len(buf)/2)])
-		if err != nil {
-			if err != io.EOF {
-				return nil, err
-			}
-			break
+		n, rerr := t.Read(buf[pos : pos+(len(buf)/2)])
+		if rerr != nil && rerr != io.EOF {
+			return nil, rerr
 		}
 
 		if n > 0 {
@@ -115,9 +115,11 @@ func (t *transportBasicIO) WaitForFunc(f func([]byte) (int, error)) ([]byte, err
 
 			pos = n
 		}
-	}
 
-	return nil, fmt.Errorf("WaitForFunc failed")
+		if rerr == io.EOF {
+			return nil, ErrUnexpectedEOF
+		}
+	}
 }
 
 func (t *transportBasicIO) WaitForBytes(b []byte) ([]byte, error) {
